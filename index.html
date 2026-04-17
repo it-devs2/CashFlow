@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Management System Dashboard</title>
+    <!-- Modern Font: Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <!-- ApexCharts for modern visualizations -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-left">
+                <h1>Financial Management System Dashboard</h1>
+                <!-- Inline Filter Bar -->
+                <div class="header-filters" id="header-filters">
+                    <div class="hfilter-group" style="position:relative;">
+                        <label>🔍 เจ้าหนี้</label>
+                        <div class="multi-select-box" id="btn-creditor-dropdown">
+                            <span id="creditor-selected-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">ทั้งหมด</span>
+                            <span style="font-size: 10px; margin-left: 8px;">▼</span>
+                        </div>
+                        <div id="creditor-dropdown" class="autocomplete-dropdown ms-dropdown">
+                            <div class="ms-search-container">
+                                <input type="text" id="filter-creditor-search" placeholder="🔍 ค้นหาชื่อเจ้าหนี้..." autocomplete="off">
+                            </div>
+                            <div class="ms-actions">
+                                <span class="ms-action-btn" id="btn-ms-select-all">☑ เลือกทั้งหมดที่แสดง</span>
+                                <span class="ms-action-btn" id="btn-ms-clear" style="color: var(--expense);">☐ ล้างการเลือก</span>
+                            </div>
+                            <div class="ms-list" id="creditor-suggestions"></div>
+                        </div>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="filter-bank">🏦 Bank</label>
+                        <select id="filter-bank"><option value="All">ทั้งหมด</option></select>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="filter-type">📂 Type</label>
+                        <select id="filter-type">
+                            <option value="All">ทั้งหมด</option>
+                            <option value="Income">Income</option>
+                            <option value="Expense">Expense</option>
+                        </select>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="filter-day">📅 วัน</label>
+                        <select id="filter-day"><option value="All">ทั้งหมด</option></select>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="filter-month">📅 เดือน</label>
+                        <select id="filter-month"><option value="All">ทั้งหมด</option></select>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="filter-year">📅 ปี</label>
+                        <select id="filter-year"><option value="All">ทั้งหมด</option></select>
+                    </div>
+                    <button id="btn-reset-filters" class="btn-reset">↺ รีเซ็ต</button>
+                </div>
+            </div>
+            <div class="header-actions">
+                <div class="header-net-balance">
+                    <span class="net-balance-label">Net Balance:</span>
+                    <span id="header-net-amount" class="net-balance-amount">0.00</span>
+                </div>
+                <div class="user-profile">
+                    <span>Welcome, User</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Summary Cards -->
+        <section class="summary-cards">
+            <!-- Actual vs Plan -->
+            <div class="card glass income-card">
+                <h3>Income (Actual)</h3>
+                <p id="income-actual" class="amount">0.00</p>
+                <button class="btn-detail" onclick="openDetailModal('income-actual')">📋 ดูรายละเอียด</button>
+            </div>
+            <div class="card glass plan-card">
+                <h3>Income (Plan)</h3>
+                <p id="income-plan" class="amount">0.00</p>
+                <button class="btn-detail" onclick="openDetailModal('income-plan')">📋 ดูรายละเอียด</button>
+            </div>
+            <div class="card glass expense-card">
+                <h3>Expense (Actual)</h3>
+                <p id="expense-actual" class="amount">0.00</p>
+                <button class="btn-detail" onclick="openDetailModal('expense-actual')">📋 ดูรายละเอียด</button>
+            </div>
+            <div class="card glass plan-card expense-plan-card">
+                <h3>Expense (Plan)</h3>
+                <p id="expense-plan" class="amount">0.00</p>
+                <button class="btn-detail" onclick="openDetailModal('expense-plan')">📋 ดูรายละเอียด</button>
+            </div>
+        </section>
+
+        <!-- Premium Charts Section -->
+        <section class="charts-section glass">
+            <h2 class="section-title">Financial Overview (Monthly Transactions)</h2>
+            <div id="comparison-chart"></div>
+        </section>
+
+        <!-- Bank Balances -->
+        <section class="bank-balances-section">
+            <div class="bank-section-header">
+                <h2 class="section-title">Bank Balances</h2>
+                <div id="bank-header-summary" class="bank-header-summary">
+                    <div class="bh-horizontal-pill">
+                        <div class="bh-pillar bh-pillar-main">
+                            <span class="bh-label">Selected Balance</span>
+                            <span id="bank-total-available" class="bh-value">0.00</span>
+                        </div>
+                        <div class="bh-separator"></div>
+                        <div class="bh-pillar bh-pillar-date">
+                            <span class="bh-info-label">ข้อมูล ณ วันที่</span>
+                            <span id="bank-selected-date" class="bh-info-value">-</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="bank-date-filters">
+                    <div class="hfilter-group">
+                        <label for="bb-filter-day">📅 วัน</label>
+                        <select id="bb-filter-day"><option value="All">ทั้งหมด</option></select>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="bb-filter-month">📅 เดือน</label>
+                        <select id="bb-filter-month"><option value="All">ทั้งหมด</option></select>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="bb-filter-year">📅 ปี</label>
+                        <select id="bb-filter-year"><option value="All">ทั้งหมด</option></select>
+                    </div>
+                    <button id="bb-btn-reset" class="btn-reset">↺ รีเซ็ต</button>
+                </div>
+            </div>
+            <div class="bank-balances-container" id="bank-balances-container">
+                <!-- Javascript will inject bank balances here -->
+            </div>
+        </section>
+
+
+
+        <!-- Data Table -->
+        <section class="table-container glass">
+            <table id="transactions-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Doc No</th>
+                        <th>Description</th>
+                        <th>Bank</th>
+                        <th>Type</th>
+                        <th>Category</th>
+                        <th>Group</th>
+                        <th>Name</th>
+                        <th>Party</th>
+                        <th>Project</th>
+                        <th>Status</th>
+                        <th class="numeric">Amount (THB)</th>
+                        <th class="numeric">Cash In</th>
+                        <th class="numeric">Cash Out</th>
+                        <th>Transfer To</th>
+                    </tr>
+                </thead>
+                <tbody id="table-body">
+                    <!-- Data will be injected here by script.js -->
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <!-- Detail Modal -->
+    <div id="detail-modal" class="modal-overlay" onclick="closeDetailModal(event)">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div>
+                    <h2 id="modal-title" class="modal-title">รายละเอียด</h2>
+                    <p id="modal-subtitle" class="modal-subtitle"></p>
+                </div>
+                <button class="modal-close" onclick="closeDetailModal(null, true)">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-search-bar">
+                    <input type="text" id="modal-search" placeholder="🔍 ค้นหาในรายการ..." oninput="filterModalTable()">
+                </div>
+                <div class="modal-table-wrap">
+                    <table id="modal-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>วันที่</th>
+                                <th>คำอธิบาย</th>
+                                <th>เจ้าหนี้ / ลูกหนี้</th>
+                                <th>Bank</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th class="numeric">จำนวนเงิน (฿)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modal-table-body"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <span id="modal-row-count"></span>
+                    <span id="modal-total-amount"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bank Detail Modal -->
+    <div id="bank-detail-modal" class="modal-overlay" onclick="closeBankDetailModal(event)">
+        <div class="modal-box">
+            <div class="modal-header">
+                <div>
+                    <h2 id="bank-modal-title" class="modal-title">รายละเอียดธนาคาร</h2>
+                    <p id="bank-modal-subtitle" class="modal-subtitle"></p>
+                </div>
+                <button class="modal-close" onclick="closeBankDetailModal(null, true)">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="modal-search-bar">
+                    <input type="text" id="bank-modal-search" placeholder="🔍 ค้นหาในรายการ..." oninput="filterBankModalTable()">
+                </div>
+                <div class="modal-table-wrap">
+                    <table id="bank-modal-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>วันที่</th>
+                                <th>คำอธิบาย</th>
+                                <th>ประเภท</th>
+                                <th>Category</th>
+                                <th>Status</th>
+                                <th class="numeric">Cash In (฿)</th>
+                                <th class="numeric">Cash Out (฿)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bank-modal-table-body"></tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <span id="bank-modal-row-count"></span>
+                    <span id="bank-modal-totals"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

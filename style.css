@@ -43,7 +43,7 @@ body {
 .dashboard-container {
     max-width: 1500px;
     margin: 0 auto;
-    padding: 30px;
+    padding: 30px 30px 100px;
 }
 
 /* Glassmorphism utility */
@@ -1264,4 +1264,66 @@ body.hide-balances .net-balance-amount {
     opacity: 0.6;
     pointer-events: none;
     user-select: none;
+}
+
+/* ── Floating Google Sheets FAB ── */
+#btn-open-sheets {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 9999;
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    overflow: hidden;
+    /* icon size only by default */
+    width: 52px;
+    height: 52px;
+    padding: 0 13px;
+    background: #1e2a20;
+    color: #ffffff;
+    text-decoration: none;
+    font-family: 'Inter', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 50px;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
+    border: 1px solid rgba(255,255,255,0.1);
+    transition: width 0.3s cubic-bezier(0.4,0,0.2,1),
+                background 0.2s ease,
+                box-shadow 0.2s ease,
+                transform 0.2s ease;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+#btn-open-sheets:hover {
+    width: 178px;
+    background: #1a5c30;
+    box-shadow: 0 6px 24px rgba(34, 168, 98, 0.4), 0 2px 8px rgba(0,0,0,0.4);
+    transform: translateY(-2px);
+}
+
+#btn-open-sheets:active {
+    transform: translateY(0px);
+}
+
+#btn-open-sheets img {
+    flex-shrink: 0;
+    display: block;
+}
+
+.fab-label {
+    margin-left: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    opacity: 0;
+    max-width: 0;
+    transition: opacity 0.2s ease 0.1s, max-width 0.3s ease;
+    letter-spacing: 0.3px;
+}
+
+#btn-open-sheets:hover .fab-label {
+    opacity: 1;
+    max-width: 120px;
 }

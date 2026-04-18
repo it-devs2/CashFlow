@@ -9,6 +9,8 @@
     <link rel="stylesheet" href="style.css">
     <!-- ApexCharts for modern visualizations -->
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <!-- html2pdf for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
     <div class="dashboard-container">
@@ -135,6 +137,7 @@
                         <select id="bb-filter-year"><option value="All">ทั้งหมด</option></select>
                     </div>
                     <button id="bb-btn-reset" class="btn-reset">↺ รีเซ็ต</button>
+                    <button id="btn-toggle-balance" class="btn-toggle-balance" onclick="toggleBalances()">🔒 ซ่อนยอดเงิน</button>
                 </div>
             </div>
             <div class="bank-balances-container" id="bank-balances-container">
@@ -181,7 +184,14 @@
                     <h2 id="modal-title" class="modal-title">รายละเอียด</h2>
                     <p id="modal-subtitle" class="modal-subtitle"></p>
                 </div>
-                <button class="modal-close" onclick="closeDetailModal(null, true)">✕</button>
+                <div class="modal-actions">
+                    <div class="view-toggle">
+                        <button class="btn-view active" id="btn-view-all" onclick="updateModalView('all')">🧾 ดูตาราง</button>
+                        <button class="btn-view" id="btn-view-group" onclick="updateModalView('group')">📊 กลุ่มตามหมวด</button>
+                    </div>
+                    <button class="btn-export-pdf" onclick="exportModalPdf('detail')">📄 ออก PDF</button>
+                    <button class="modal-close" onclick="closeDetailModal(null, true)">✕</button>
+                </div>
             </div>
             <div class="modal-body">
                 <div class="modal-search-bar">
@@ -189,7 +199,7 @@
                 </div>
                 <div class="modal-table-wrap">
                     <table id="modal-table">
-                        <thead>
+                        <thead id="modal-table-head">
                             <tr>
                                 <th>#</th>
                                 <th>วันที่</th>
@@ -220,7 +230,14 @@
                     <h2 id="bank-modal-title" class="modal-title">รายละเอียดธนาคาร</h2>
                     <p id="bank-modal-subtitle" class="modal-subtitle"></p>
                 </div>
-                <button class="modal-close" onclick="closeBankDetailModal(null, true)">✕</button>
+                <div class="modal-actions">
+                    <div class="view-toggle">
+                        <button class="btn-view active" id="bank-btn-view-all" onclick="updateBankModalView('all')">🧾 ดูตาราง</button>
+                        <button class="btn-view" id="bank-btn-view-group" onclick="updateBankModalView('group')">📊 กลุ่มตามหมวด</button>
+                    </div>
+                    <button class="btn-export-pdf" onclick="exportModalPdf('bank')">📄 ออก PDF</button>
+                    <button class="modal-close" onclick="closeBankDetailModal(null, true)">✕</button>
+                </div>
             </div>
             <div class="modal-body">
                 <div class="modal-search-bar">
@@ -228,7 +245,7 @@
                 </div>
                 <div class="modal-table-wrap">
                     <table id="bank-modal-table">
-                        <thead>
+                        <thead id="bank-modal-table-head">
                             <tr>
                                 <th>#</th>
                                 <th>วันที่</th>

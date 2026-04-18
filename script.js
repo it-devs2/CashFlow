@@ -17,11 +17,11 @@ function getRowType(row) {
 
     if (cashIn !== 0 && cashOut === 0) return 'income';
     if (cashOut !== 0 && cashIn === 0) return 'expense';
-    
+
     // If only Generic Amount exists, assume income as fallback
     const generic = Number(row['Amount (THB)'] || row['Amount'] || row.amount) || 0;
     if (generic !== 0) return 'income';
-    
+
     return t; // might be empty
 }
 
@@ -30,15 +30,29 @@ function getRowAmount(row, targetType) {
     const cashOut = Number(row['Cash Out'] || row.cashOut || row['# Amount']) || 0;
     const generic = Number(row['Amount (THB)'] || row['Amount'] || row.amount) || 0;
 
+    const maxVal = Math.max(cashIn, cashOut, Math.abs(generic));
+
     if (targetType === 'income') {
         const valIn = cashIn || generic;
         const valOut = cashOut;
-        return valIn - valOut;
+        
+        // Fix: If Amount exactly equals CashOut but it's assigned 'Income', or user swapped columns
+        if (valIn === valOut && valIn > 0) return valIn;
+        if (cashIn === 0 && generic === 0 && cashOut > 0) return cashOut;
+
+        const net = valIn - valOut;
+        return net >= 0 ? net : (valIn || maxVal);
     }
     if (targetType === 'expense') {
         const valOut = cashOut || generic;
         const valIn = cashIn;
-        return valOut - valIn;
+        
+        // Fix: If Amount exactly equals CashIn but it's assigned 'Expense' (e.g. 1900000 - 1900000 = 0 bug)
+        if (valOut === valIn && valOut > 0) return valOut;
+        if (cashOut === 0 && generic === 0 && cashIn > 0) return cashIn;
+
+        const net = valOut - valIn;
+        return net >= 0 ? net : (valOut || maxVal);
     }
     return generic || cashIn || cashOut || 0;
 }
@@ -80,8 +94,31 @@ async function initDashboard() {
         const dataStatus = await response.json();
 
         if (dataStatus && dataStatus.status === 'success') {
-            allTransactions = dataStatus.transactions || [];
-            allPlans = dataStatus.plans || [];
+            // Filter out completely empty rows from spreadsheet before storing
+            const isValidRow = row => Object.values(row).some(v => v !== null && v !== undefined && v.toString().trim() !== '');
+            allTransactions = (dataStatus.transactions || []).filter(isValidRow);
+            allPlans = (dataStatus.plans || []).filter(isValidRow);
+
+            // Sort all data by Date Ascending (oldest to newest, e.g. 1-31). Push invalid/empty dates to the bottom.
+            const sortByDateAsc = (a, b) => {
+                const dA = a['Date'] || a.date;
+                const dB = b['Date'] || b.date;
+                
+                if (!dA && !dB) return 0;
+                if (!dA) return 1;
+                if (!dB) return -1;
+
+                const dateA = new Date(dA);
+                const dateB = new Date(dB);
+                
+                if (isNaN(dateA) && isNaN(dateB)) return 0;
+                if (isNaN(dateA)) return 1;
+                if (isNaN(dateB)) return -1;
+                
+                return dateA - dateB;
+            };
+            allTransactions.sort(sortByDateAsc);
+            allPlans.sort(sortByDateAsc);
 
             if (dataStatus.bankBalances && dataStatus.bankBalances.length > 0) {
                 bankBalances = dataStatus.bankBalances;
@@ -89,19 +126,19 @@ async function initDashboard() {
 
             // ✅ รับค่าจาก Cell H2 และ G1 หากมีส่งมาจาก API (รองรับหลายชื่อเผื่อไว้)
             _availableBalanceH2 = (
-                dataStatus.availableBalanceH2 || 
-                dataStatus.balanceH2 || 
-                dataStatus.selectedBalance || 
-                dataStatus.totalAvailable || 
-                dataStatus.h2Value || 
+                dataStatus.availableBalanceH2 ||
+                dataStatus.balanceH2 ||
+                dataStatus.selectedBalance ||
+                dataStatus.totalAvailable ||
+                dataStatus.h2Value ||
                 0
             );
             _dateG1 = (
-                dataStatus.dateG1 || 
-                dataStatus.asOfDate || 
-                dataStatus.lastUpdate || 
-                dataStatus.sheetDate || 
-                dataStatus.g1Value || 
+                dataStatus.dateG1 ||
+                dataStatus.asOfDate ||
+                dataStatus.lastUpdate ||
+                dataStatus.sheetDate ||
+                dataStatus.g1Value ||
                 '-'
             );
 
@@ -126,11 +163,11 @@ async function initDashboard() {
             }
 
             // ✅ เก็บยอดรวมที่คำนวณจาก Code.gs โดยตรง (แม่นยำ 100% ตรงกับ Sheet)
-            if (dataStatus.summaryIncomeActual  !== undefined) window._serverSummary = {
-                incomeActual:  dataStatus.summaryIncomeActual,
+            if (dataStatus.summaryIncomeActual !== undefined) window._serverSummary = {
+                incomeActual: dataStatus.summaryIncomeActual,
                 expenseActual: dataStatus.summaryExpenseActual,
-                incomePlan:    dataStatus.summaryIncomePlan,
-                expensePlan:   dataStatus.summaryExpensePlan
+                incomePlan: dataStatus.summaryIncomePlan,
+                expensePlan: dataStatus.summaryExpensePlan
             };
 
             populateFilterDropdowns(allTransactions, allPlans);
@@ -233,14 +270,14 @@ function applyFilters() {
             const fields = [
                 row['Customer'], row['Vendor'], row['Name'], row['Party'], row['Description'], row.customer, row.vendor, row.name, row.party, row.description
             ].map(v => (v || '').toString().trim());
-            
+
             // Check if any row field matches exactly any of the selected creditors
             let matched = false;
             for (let f of fields) {
                 if (!f) continue;
-                if (selectedCreditors.has(f)) { 
-                    matched = true; 
-                    break; 
+                if (selectedCreditors.has(f)) {
+                    matched = true;
+                    break;
                 }
             }
             if (!matched) return false;
@@ -281,6 +318,8 @@ function applyFilters() {
 
     const isFiltered = selectedCreditors.size > 0 || bank !== 'All' || type !== 'All' || day !== 'All' || month !== 'All' || year !== 'All';
 
+    window.tableRenderLimit = 150; // Reset load limit on filter change
+
     renderTable(filteredTransactions, filteredPlans);
     updateSummary(isFiltered);
 
@@ -296,11 +335,19 @@ function applyFilters() {
 }
 
 // -------------------------------------------------
+// LOAD MORE TRANSACTIONS (PAGINATION)
+// -------------------------------------------------
+window.tableRenderLimit = 150;
+function loadMoreTransactions() {
+    window.tableRenderLimit += 200;
+    renderTable(typeof _lastFilteredTransactions !== 'undefined' ? _lastFilteredTransactions : allTransactions, typeof _lastFilteredPlans !== 'undefined' ? _lastFilteredPlans : allPlans);
+}
+
+// -------------------------------------------------
 // RENDER TABLE + CALCULATE TOTALS
 // -------------------------------------------------
 function renderTable(transactionsData, plansData = []) {
     const tbody = document.getElementById('table-body');
-    tbody.innerHTML = '';
 
     totalIncomeActual = 0;
     totalExpenseActual = 0;
@@ -310,19 +357,21 @@ function renderTable(transactionsData, plansData = []) {
     // Process Plans (Incoming_Plan + Payment_Plan sheets)
     plansData.forEach(row => {
         const rowStatus = (row.status || row['Status'] || '').toString().trim().toLowerCase();
-        if (rowStatus !== 'plan') return; 
+        if (rowStatus !== 'plan') return;
 
         const rowType = getRowType(row);
         const amt = getRowAmount(row, rowType);
 
-        if (rowType === 'income')  totalIncomePlan  += amt;
+        if (rowType === 'income') totalIncomePlan += amt;
         if (rowType === 'expense') totalExpensePlan += amt;
     });
 
+    let htmlFragments = [];
+    let renderCount = 0;
+    const limit = window.tableRenderLimit || 150;
+
     // Process Transactions (Actual)
     transactionsData.forEach(row => {
-        const tr = document.createElement('tr');
-
         const rowStatus = (row.status || row['Status'] || '').toString().trim().toLowerCase();
         const rowType = getRowType(row);
 
@@ -330,39 +379,58 @@ function renderTable(transactionsData, plansData = []) {
         // ✅ คำนวณแบบ (In - Out) เพื่อความแม่นยำสูงสุดตาม Sheet
         if (rowStatus !== 'plan') {
             const amt = getRowAmount(row, rowType);
-            if (rowType === 'income')  totalIncomeActual  += amt;
+            if (rowType === 'income') totalIncomeActual += amt;
             if (rowType === 'expense') totalExpenseActual += amt;
         }
 
-        const cashInVal  = row.cashIn || row['Cash In'];
-        const cashOutVal = row.cashOut || row['Cash Out'];
+        // Render limited rows to DOM to prevent lag
+        if (renderCount < limit) {
+            const cashInVal = row.cashIn || row['Cash In'];
+            const cashOutVal = row.cashOut || row['Cash Out'];
 
-        const rawDate = row['Date'] || row.date || '';
-        let displayDate = rawDate;
-        try {
-            const d = new Date(rawDate);
-            if (!isNaN(d)) displayDate = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        } catch (e) { }
+            const rawDate = row['Date'] || row.date || '';
+            let displayDate = rawDate;
+            try {
+                const d = new Date(rawDate);
+                if (!isNaN(d)) displayDate = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch (e) { }
 
-        tr.innerHTML = `
-            <td>${displayDate}</td>
-            <td>${row.docNo || row['Doc No'] || ''}</td>
-            <td>${row.description || row['Description'] || ''}</td>
-            <td>${row.bank || row['Bank'] || ''}</td>
-            <td class="type-cell"><span class="type-${rowType}">${rowType || ''}</span></td>
-            <td>${row.category || row['Category'] || ''}</td>
-            <td>${row.group || row['Group'] || ''}</td>
-            <td>${row.name || row['Name'] || ''}</td>
-            <td>${row.party || row['Party'] || row.customer || row['Customer'] || ''}</td>
-            <td>${row.project || row['Project'] || ''}</td>
-            <td>${row.status || row['Status'] || ''}</td>
-            <td class="numeric">${checkValue(row.amount || row['Amount (THB)'] || row['Amount'])}</td>
-            <td class="numeric">${checkValue(cashInVal)}</td>
-            <td class="numeric">${checkValue(cashOutVal)}</td>
-            <td>${row.transferTo || row['Transfer To'] || ''}</td>
-        `;
-        tbody.appendChild(tr);
+            htmlFragments.push(`
+                <tr>
+                    <td>${displayDate}</td>
+                    <td>${row.docNo || row['Doc No'] || ''}</td>
+                    <td>${row.description || row['Description'] || ''}</td>
+                    <td>${row.bank || row['Bank'] || ''}</td>
+                    <td class="type-cell"><span class="type-${rowType}">${rowType || ''}</span></td>
+                    <td>${row.category || row['Category'] || ''}</td>
+                    <td>${row.group || row['Group'] || ''}</td>
+                    <td>${row.name || row['Name'] || ''}</td>
+                    <td>${row.party || row['Party'] || row.customer || row['Customer'] || ''}</td>
+                    <td>${row.project || row['Project'] || ''}</td>
+                    <td>${row.status || row['Status'] || ''}</td>
+                    <td class="numeric">${checkValue(row.amount || row['Amount (THB)'] || row['Amount'])}</td>
+                    <td class="numeric">${checkValue(cashInVal)}</td>
+                    <td class="numeric">${checkValue(cashOutVal)}</td>
+                    <td>${row.transferTo || row['Transfer To'] || ''}</td>
+                </tr>
+            `);
+            renderCount++;
+        }
     });
+
+    if (transactionsData.length > limit) {
+        const remaining = transactionsData.length - limit;
+        htmlFragments.push(`
+            <tr><td colspan="15" style="text-align: center; padding: 25px;">
+                <button onclick="loadMoreTransactions()" style="padding: 10px 24px; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.4); color: var(--primary); border-radius: 8px; cursor: pointer; font-family: inherit; font-size: 14px; font-weight: 600; transition: all 0.2s;">
+                    👇 โหลดข้อมูลเพิ่มเติม (${remaining.toLocaleString()} รายการที่เหลือ)
+                </button>
+            </td></tr>
+        `);
+    }
+
+    // Apply entire HTML at once instead of appendChild in loop (Massive performance boost)
+    tbody.innerHTML = htmlFragments.join('');
 }
 
 // -------------------------------------------------
@@ -371,10 +439,10 @@ function renderTable(transactionsData, plansData = []) {
 function updateSummary(isFiltered = false) {
     // ✅ ถ้าไม่ได้กรองข้อมูล และมีค่าจาก Server (Sheet) ให้ใช้ค่านั้นเพื่อให้ตรงกับ Sheet 100%
     if (!isFiltered && window._serverSummary) {
-        totalIncomeActual  = window._serverSummary.incomeActual;
+        totalIncomeActual = window._serverSummary.incomeActual;
         totalExpenseActual = window._serverSummary.expenseActual;
-        totalIncomePlan    = window._serverSummary.incomePlan;
-        totalExpensePlan   = window._serverSummary.expensePlan;
+        totalIncomePlan = window._serverSummary.incomePlan;
+        totalExpensePlan = window._serverSummary.expensePlan;
     }
 
     document.getElementById('income-actual').innerText = checkValue(totalIncomeActual);
@@ -425,7 +493,7 @@ function updateOverviewChart() {
 
         const m = d.getMonth();
         const rowStatus = (row.status || row['Status'] || '').toString().trim().toLowerCase();
-        
+
         if (rowStatus !== 'plan') {
             const rowType = getRowType(row);
             const amt = getRowAmount(row, rowType);
@@ -447,12 +515,24 @@ function updateOverviewChart() {
             background: 'transparent',
             toolbar: { show: false },
             fontFamily: 'Outfit, sans-serif',
+            zoom: { enabled: false },
+            selection: { enabled: false },
             animations: {
                 enabled: true,
                 easing: 'easeinout',
                 speed: 800,
                 animateGradually: { enabled: true, delay: 150 },
                 dynamicAnimation: { enabled: true, speed: 350 }
+            },
+            events: {
+                mounted: function(ctx) {
+                    const el = document.querySelector('#comparison-chart');
+                    if (el) {
+                        el.addEventListener('wheel', function(e) {
+                            e.stopPropagation();
+                        }, { passive: true });
+                    }
+                }
             }
         },
         colors: ['#10b981', '#ef4444'], // Income: Green, Expense: Red
@@ -609,9 +689,9 @@ function renderBankBalances(filteredBalances) {
 
         // แยกชื่อธนาคาร vs เลขที่บัญชี
         const dashIdx = bank.bank.indexOf('-');
-        const bankType   = dashIdx !== -1 ? bank.bank.substring(0, dashIdx).trim() : bank.bank.trim();
+        const bankType = dashIdx !== -1 ? bank.bank.substring(0, dashIdx).trim() : bank.bank.trim();
         const accountNum = dashIdx !== -1 ? bank.bank.substring(dashIdx + 1).trim() : '';
-        const safeBank   = bank.bank.replace(/'/g, "\\'");
+        const safeBank = bank.bank.replace(/'/g, "\\'");
 
         card.innerHTML = `
             <div class="bank-card-header">
@@ -638,7 +718,7 @@ function renderBankBalances(filteredBalances) {
         // หากไม่มีข้อมูลจาก Server จริงๆ ถึงจะใช้ยอดรวมจากบัตรธนาคารทั้งหมด
         const sumOfAllCards = sorted.reduce((sum, b) => sum + (Number(b.balance) || 0), 0);
         const finalTotal = (_availableBalanceH2 && _availableBalanceH2 !== 0) ? _availableBalanceH2 : sumOfAllCards;
-        
+
         totalAvailableEl.textContent = checkValue(finalTotal);
     }
 
@@ -685,9 +765,9 @@ function populateBankDateFilters() {
         }
     });
 
-    const daySel   = document.getElementById('bb-filter-day');
+    const daySel = document.getElementById('bb-filter-day');
     const monthSel = document.getElementById('bb-filter-month');
-    const yearSel  = document.getElementById('bb-filter-year');
+    const yearSel = document.getElementById('bb-filter-year');
 
     daySel.innerHTML = '<option value="All">ทั้งหมด</option>';
     [...days].sort((a, b) => a - b).forEach(d => {
@@ -717,9 +797,9 @@ function populateBankDateFilters() {
 function openBankDetailModal(bankFullName, bankType, accountNum) {
     _currentBankName = bankFullName;
 
-    const day   = document.getElementById('bb-filter-day')?.value   || 'All';
+    const day = document.getElementById('bb-filter-day')?.value || 'All';
     const month = document.getElementById('bb-filter-month')?.value || 'All';
-    const year  = document.getElementById('bb-filter-year')?.value  || 'All';
+    const year = document.getElementById('bb-filter-year')?.value || 'All';
 
     // Helper: แยกชื่อธนาคาร (ส่วนก่อน "-" แรก)
     function extractBankType(str) {
@@ -731,7 +811,7 @@ function openBankDetailModal(bankFullName, bankType, accountNum) {
     }
 
     const bankTypeUpper = bankType.toUpperCase();
-    const acctLast4     = last4digits(accountNum);
+    const acctLast4 = last4digits(accountNum);
 
     const rows = allTransactions.filter(row => {
         const b = (row['Bank'] || row.bank || '').trim();
@@ -756,9 +836,9 @@ function openBankDetailModal(bankFullName, bankType, accountNum) {
         if (rawDate && (day !== 'All' || month !== 'All' || year !== 'All')) {
             const d = new Date(rawDate);
             if (!isNaN(d)) {
-                if (day   !== 'All' && d.getDate()          !== Number(day))   return false;
-                if (month !== 'All' && (d.getMonth() + 1)   !== Number(month)) return false;
-                if (year  !== 'All' && d.getFullYear()       !== Number(year))  return false;
+                if (day !== 'All' && d.getDate() !== Number(day)) return false;
+                if (month !== 'All' && (d.getMonth() + 1) !== Number(month)) return false;
+                if (year !== 'All' && d.getFullYear() !== Number(year)) return false;
             }
         }
         return true;
@@ -777,44 +857,93 @@ function openBankDetailModal(bankFullName, bankType, accountNum) {
     document.body.style.overflow = 'hidden';
 }
 
+let _bankModalViewMode = 'all';
+
+function updateBankModalView(mode) {
+    _bankModalViewMode = mode;
+    document.getElementById('bank-btn-view-all').classList.toggle('active', mode === 'all');
+    document.getElementById('bank-btn-view-group').classList.toggle('active', mode === 'group');
+    filterBankModalTable();
+}
+
 function renderBankDetailRows(rows) {
     const tbody = document.getElementById('bank-modal-table-body');
+    const thead = document.getElementById('bank-modal-table-head');
     tbody.innerHTML = '';
     let totalIn = 0, totalOut = 0;
 
-    rows.forEach((row, i) => {
-        const rawDate = row['Date'] || row.date || '';
-        let displayDate = rawDate;
-        try {
-            const d = new Date(rawDate);
-            if (!isNaN(d)) displayDate = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        } catch (e) {}
+    if (_bankModalViewMode === 'group') {
+        thead.innerHTML = `<tr><th>#</th><th>Category</th><th>จำนวนรายการ</th><th class="numeric">Cash In (฿)</th><th class="numeric">Cash Out (฿)</th></tr>`;
+        
+        const grouped = {};
+        rows.forEach(row => {
+            const cat = row['Category'] || row.category || 'ไม่ระบุหมวดหมู่';
+            if (!grouped[cat]) grouped[cat] = { count: 0, in: 0, out: 0 };
+            const cashIn = Number(row['Cash In'] || row.cashIn || row['Amount'] || row['Amount (THB)'] || row.amount) || 0;
+            const cashOut = Number(row['Cash Out'] || row.cashOut || row['# Amount']) || 0;
+            
+            grouped[cat].count++;
+            grouped[cat].in += cashIn;
+            grouped[cat].out += cashOut;
+        });
 
-        const desc     = row['Description'] || row.description || '-';
-        const type     = row['Type'] || row.type || '-';
-        const category = row['Category'] || row.category || '-';
-        const status   = row['Status'] || row.status || '-';
-        const cashIn   = Number(row['Cash In'] || row.cashIn || row['Amount'] || row['Amount (THB)'] || row.amount) || 0;
-        const cashOut  = Number(row['Cash Out'] || row.cashOut || row['# Amount']) || 0;
+        const sortedKeys = Object.keys(grouped).sort((a,b) => (grouped[b].in + grouped[b].out) - (grouped[a].in + grouped[a].out));
+        let totalCount = 0;
+        
+        sortedKeys.forEach((cat, i) => {
+            const item = grouped[cat];
+            totalIn += item.in;
+            totalOut += item.out;
+            totalCount += item.count;
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td>${cat}</td>
+                <td>${item.count} รายการ</td>
+                <td class="numeric modal-amount-income">${item.in > 0 ? '฿' + checkValue(item.in) : '-'}</td>
+                <td class="numeric modal-amount-expense">${item.out > 0 ? '฿' + checkValue(item.out) : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('bank-modal-row-count').textContent = `รวม ${totalCount} รายการ (${sortedKeys.length} หมวดหมู่)`;
+    } else {
+        thead.innerHTML = `<tr><th>#</th><th>วันที่</th><th>คำอธิบาย</th><th>ประเภท</th><th>Category</th><th>Status</th><th class="numeric">Cash In (฿)</th><th class="numeric">Cash Out (฿)</th></tr>`;
+        
+        rows.forEach((row, i) => {
+            const rawDate = row['Date'] || row.date || '';
+            let displayDate = rawDate;
+            try {
+                const d = new Date(rawDate);
+                if (!isNaN(d)) displayDate = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch (e) { }
 
-        totalIn  += cashIn;
-        totalOut += cashOut;
+            const desc = row['Description'] || row.description || '-';
+            const type = row['Type'] || row.type || '-';
+            const category = row['Category'] || row.category || '-';
+            const status = row['Status'] || row.status || '-';
+            const cashIn = Number(row['Cash In'] || row.cashIn || row['Amount'] || row['Amount (THB)'] || row.amount) || 0;
+            const cashOut = Number(row['Cash Out'] || row.cashOut || row['# Amount']) || 0;
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${displayDate}</td>
-            <td title="${desc}">${desc}</td>
-            <td><span class="type-${type.toLowerCase()}">${type}</span></td>
-            <td>${category}</td>
-            <td>${status}</td>
-            <td class="numeric modal-amount-income">${cashIn  > 0 ? '฿' + checkValue(cashIn)  : '-'}</td>
-            <td class="numeric modal-amount-expense">${cashOut > 0 ? '฿' + checkValue(cashOut) : '-'}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+            totalIn += cashIn;
+            totalOut += cashOut;
 
-    document.getElementById('bank-modal-row-count').textContent = `${rows.length} รายการ`;
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td>${displayDate}</td>
+                <td title="${desc}">${desc}</td>
+                <td><span class="type-${type.toLowerCase()}">${type}</span></td>
+                <td>${category}</td>
+                <td>${status}</td>
+                <td class="numeric modal-amount-income">${cashIn > 0 ? '฿' + checkValue(cashIn) : '-'}</td>
+                <td class="numeric modal-amount-expense">${cashOut > 0 ? '฿' + checkValue(cashOut) : '-'}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('bank-modal-row-count').textContent = `${rows.length} รายการ`;
+    }
+
     document.getElementById('bank-modal-totals').innerHTML =
         `รับเข้า: <span class="modal-amount-income">฿${checkValue(totalIn)}</span> &nbsp;|&nbsp; จ่ายออก: <span class="modal-amount-expense">฿${checkValue(totalOut)}</span>`;
 }
@@ -887,9 +1016,9 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.getElementById('bb-btn-reset')?.addEventListener('click', () => {
-        document.getElementById('bb-filter-day').value   = 'All';
+        document.getElementById('bb-filter-day').value = 'All';
         document.getElementById('bb-filter-month').value = 'All';
-        document.getElementById('bb-filter-year').value  = 'All';
+        document.getElementById('bb-filter-year').value = 'All';
         renderBankBalances(bankBalances);
     });
 });
@@ -960,50 +1089,201 @@ function openDetailModal(cardId) {
     document.body.style.overflow = 'hidden';
 }
 
+let _detailModalViewMode = 'all';
+
+function updateModalView(mode) {
+    _detailModalViewMode = mode;
+    document.getElementById('btn-view-all').classList.toggle('active', mode === 'all');
+    document.getElementById('btn-view-group').classList.toggle('active', mode === 'group');
+    filterModalTable();
+}
+
+function exportModalPdf(type) {
+    const isBank = type === 'bank';
+    const sourceTable = document.getElementById(isBank ? 'bank-modal-table' : 'modal-table');
+    const title = document.getElementById(isBank ? 'bank-modal-title' : 'modal-title').textContent;
+    const mode = isBank ? _bankModalViewMode : _detailModalViewMode;
+
+    const footerCount = document.getElementById(isBank ? 'bank-modal-row-count' : 'modal-row-count').textContent;
+    const footerTotal = document.getElementById(isBank ? 'bank-modal-totals' : 'modal-total-amount').innerText;
+
+    // Clone the visible table including all rendered rows
+    const tableClone = sourceTable.cloneNode(true);
+    tableClone.removeAttribute('id');
+
+    // Inject colgroup for precise column widths to avoid wrapping (A4 portrait ~190mm usable)
+    // Different widths for group vs detail view
+    let colgroupHtml = '';
+    if (mode === 'group') {
+        if (isBank) {
+            // # | Category | Count | CashIn | CashOut
+            colgroupHtml = `<colgroup>
+                <col style="width:6%">
+                <col style="width:36%">
+                <col style="width:18%">
+                <col style="width:20%">
+                <col style="width:20%">
+            </colgroup>`;
+        } else {
+            // # | Category | Count | Total
+            colgroupHtml = `<colgroup>
+                <col style="width:6%">
+                <col style="width:52%">
+                <col style="width:18%">
+                <col style="width:24%">
+            </colgroup>`;
+        }
+    } else {
+        if (isBank) {
+            // # | Date | Desc | Type | Category | Status | CashIn | CashOut
+            colgroupHtml = `<colgroup>
+                <col style="width:4%">
+                <col style="width:9%">
+                <col style="width:24%">
+                <col style="width:9%">
+                <col style="width:15%">
+                <col style="width:9%">
+                <col style="width:15%">
+                <col style="width:15%">
+            </colgroup>`;
+        } else {
+            // # | Date | Desc | Party | Bank | Category | Status | Amount
+            colgroupHtml = `<colgroup>
+                <col style="width:4%">
+                <col style="width:9%">
+                <col style="width:22%">
+                <col style="width:14%">
+                <col style="width:10%">
+                <col style="width:14%">
+                <col style="width:9%">
+                <col style="width:18%">
+            </colgroup>`;
+        }
+    }
+
+    // Insert colgroup right after <table tag
+    let tableHtml = tableClone.outerHTML.replace(/^<table[^>]*>/, match => match + colgroupHtml);
+
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) { alert('กรุณาอนุญาต Pop-up สำหรับเว็บนี้ก่อนครับ'); return; }
+
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>${title}</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Sarabun', sans-serif; font-size: 7.5pt; color: #111; background: #fff; padding: 18px 20px; }
+  .hdr { text-align: center; border-bottom: 2px solid #1e3a5f; padding-bottom: 10px; margin-bottom: 14px; }
+  .hdr h1 { font-size: 15pt; color: #1e3a5f; font-weight: 700; margin-bottom: 4px; }
+  .hdr h2 { font-size: 11pt; color: #334155; font-weight: 600; margin-bottom: 4px; }
+  .hdr p  { font-size: 8pt; color: #555; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 14px; font-size: 7pt; table-layout: fixed; }
+  thead th { background: #1e3a5f; color: #fff; padding: 7px 5px; text-align: left; font-weight: 700; border: 1px solid #1e3a5f; white-space: nowrap; overflow: hidden; font-size: 7pt; }
+  tbody tr:nth-child(even) { background: #f0f4f8; }
+  tbody tr:nth-child(odd)  { background: #fff; }
+  tbody td { padding: 5px; border: 1px solid #d1d5db; color: #111; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .numeric { text-align: right; font-family: monospace; white-space: nowrap; }
+  thead th.numeric { text-align: right; }
+  .modal-amount-income { color: #16a34a !important; font-weight: 700; }
+  .modal-amount-expense { color: #dc2626 !important; font-weight: 700; }
+  .ftr { border-top: 2px solid #1e3a5f; padding-top: 8px; display: flex; justify-content: space-between; font-weight: 700; font-size: 9pt; color: #1e3a5f; }
+  @media print { @page { size: A4 portrait; margin: 1cm; } body { padding: 0; } }
+</style>
+</head>
+<body>
+<div class="hdr">
+  <h1>รายงานสรุปข้อมูลทางการเงิน</h1>
+  <h2>${title}</h2>
+  <p>รูปแบบ: ${mode === 'group' ? 'สรุปตามหมวดหมู่' : 'รายการละเอียด'} &nbsp;|&nbsp; วันที่เรียกดู: ${new Date().toLocaleString('th-TH')}</p>
+</div>
+${tableHtml}
+<div class="ftr"><span>${footerCount}</span><span>${footerTotal}</span></div>
+<script>window.onload=function(){window.print();}<\/script>
+</body></html>`);
+    printWindow.document.close();
+}
+
+
 function renderModalRows(rows) {
     const tbody = document.getElementById('modal-table-body');
+    const thead = document.getElementById('modal-table-head');
     tbody.innerHTML = '';
-
     let total = 0;
 
-    rows.forEach((row, i) => {
-        const rawDate = row['Date'] || row.date || '';
-        let displayDate = rawDate;
-        try {
-            const d = new Date(rawDate);
-            if (!isNaN(d)) displayDate = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
-        } catch (e) { }
+    if (_detailModalViewMode === 'group') {
+        thead.innerHTML = `<tr><th>#</th><th>Category</th><th>จำนวนรายการ</th><th class="numeric">ยอดรวม (฿)</th></tr>`;
+        
+        const grouped = {};
+        rows.forEach(row => {
+            const cat = row['Category'] || row.category || 'ไม่ระบุหมวดหมู่';
+            if (!grouped[cat]) grouped[cat] = { count: 0, sum: 0 };
+            grouped[cat].count++;
+            grouped[cat].sum += getRowAmount(row, _modalType);
+        });
+        
+        const sortedKeys = Object.keys(grouped).sort((a, b) => grouped[b].sum - grouped[a].sum);
+        let totalCount = 0;
+        
+        sortedKeys.forEach((cat, i) => {
+            const item = grouped[cat];
+            total += item.sum;
+            totalCount += item.count;
+            const amtClass = _modalType === 'income' ? 'modal-amount-income' : 'modal-amount-expense';
+            
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td>${cat}</td>
+                <td>${item.count} รายการ</td>
+                <td class="numeric ${amtClass}">฿${checkValue(item.sum)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        
+        document.getElementById('modal-row-count').textContent = `รวม ${totalCount} รายการ (${sortedKeys.length} หมวดหมู่)`;
+    } else {
+        thead.innerHTML = `<tr><th>#</th><th>วันที่</th><th>คำอธิบาย</th><th>เจ้าหนี้ / ลูกหนี้</th><th>Bank</th><th>Category</th><th>Status</th><th class="numeric">จำนวนเงิน (฿)</th></tr>`;
+        
+        rows.forEach((row, i) => {
+            const rawDate = row['Date'] || row.date || '';
+            let displayDate = rawDate;
+            try {
+                const d = new Date(rawDate);
+                if (!isNaN(d)) displayDate = d.toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit', year: 'numeric' });
+            } catch (e) { }
 
-        const desc = row['Description'] || row.description || '-';
-        const creditor = row['Customer'] || row['Vendor'] || row['Party'] || row['Name'] || row.customer || row.party || row.name || '-';
-        const bank = row['Bank'] || row.bank || '-';
-        const category = row['Category'] || row.category || '-';
-        const status = row['Status'] || row.status || '-';
+            const desc = row['Description'] || row.description || '-';
+            const creditor = row['Customer'] || row['Vendor'] || row['Party'] || row['Name'] || row.customer || row.party || row.name || '-';
+            const bank = row['Bank'] || row.bank || '-';
+            const category = row['Category'] || row.category || '-';
+            const status = row['Status'] || row.status || '-';
 
-        const numAmt = getRowAmount(row, _modalType);
-        total += numAmt;
+            const numAmt = getRowAmount(row, _modalType);
+            total += numAmt;
 
-        const amtClass = _modalType === 'income' ? 'modal-amount-income' : 'modal-amount-expense';
+            const amtClass = _modalType === 'income' ? 'modal-amount-income' : 'modal-amount-expense';
 
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${i + 1}</td>
-            <td>${displayDate}</td>
-            <td title="${desc}">${desc}</td>
-            <td title="${creditor}">${creditor}</td>
-            <td>${bank}</td>
-            <td>${category}</td>
-            <td>${status}</td>
-            <td class="numeric ${amtClass}">฿${checkValue(numAmt)}</td>
-        `;
-        tbody.appendChild(tr);
-    });
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${i + 1}</td>
+                <td>${displayDate}</td>
+                <td title="${desc}">${desc}</td>
+                <td title="${creditor}">${creditor}</td>
+                <td>${bank}</td>
+                <td>${category}</td>
+                <td>${status}</td>
+                <td class="numeric ${amtClass}">฿${checkValue(numAmt)}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+        document.getElementById('modal-row-count').textContent = `${rows.length} รายการ`;
+    }
 
-    // Footer summary
-    document.getElementById('modal-row-count').textContent = `${rows.length} รายการ`;
-    const totalEl = document.getElementById('modal-total-amount');
     const amtClass = _modalType === 'income' ? 'modal-amount-income' : 'modal-amount-expense';
-    totalEl.innerHTML = `ยอดรวม: <span class="${amtClass}">฿${checkValue(total)}</span>`;
+    document.getElementById('modal-total-amount').innerHTML = `ยอดรวม: <span class="${amtClass}">฿${checkValue(total)}</span>`;
 }
 
 function filterModalTable() {
@@ -1099,7 +1379,7 @@ function initCreditorAutocomplete() { // renamed internally but keeping the orig
     function renderMsList(query) {
         suggestionsList.innerHTML = '';
         const q = query.toLowerCase();
-        
+
         let matches = allParties;
         if (q) {
             matches = allParties.filter(p => p.toLowerCase().includes(q));
@@ -1111,7 +1391,7 @@ function initCreditorAutocomplete() { // renamed internally but keeping the orig
                 return a.localeCompare(b, 'th');
             });
         }
-        
+
         currentMatches = matches;
 
         if (matches.length === 0) {
@@ -1123,13 +1403,13 @@ function initCreditorAutocomplete() { // renamed internally but keeping the orig
         matches.slice(0, 100).forEach(name => {
             const item = document.createElement('label');
             item.className = 'ms-item';
-            
+
             const checkbox = document.createElement('input');
             checkbox.type = 'checkbox';
             checkbox.className = 'ms-checkbox';
             checkbox.value = name;
             checkbox.checked = selectedCreditors.has(name);
-            
+
             checkbox.addEventListener('change', (e) => {
                 if (e.target.checked) {
                     selectedCreditors.add(name);
@@ -1142,13 +1422,13 @@ function initCreditorAutocomplete() { // renamed internally but keeping the orig
 
             const span = document.createElement('span');
             span.className = 'ms-item-name';
-            
+
             // Highlight text
             if (q) {
                 const idx = name.toLowerCase().indexOf(q);
                 if (idx !== -1) {
                     span.innerHTML = name.slice(0, idx) +
-                        '<mark style="background:transparent; color:var(--primary); font-weight:bold;">' + 
+                        '<mark style="background:transparent; color:var(--primary); font-weight:bold;">' +
                         name.slice(idx, idx + q.length) + '</mark>' +
                         name.slice(idx + q.length);
                 } else {
@@ -1185,3 +1465,18 @@ function initCreditorAutocomplete() { // renamed internally but keeping the orig
     });
 }
 
+// -------------------------------------------------
+// TOGGLE BALANCES (SHOW/HIDE)
+// -------------------------------------------------
+function toggleBalances() {
+    const body = document.body;
+    const btn = document.getElementById('btn-toggle-balance');
+    
+    if (body.classList.contains('hide-balances')) {
+        body.classList.remove('hide-balances');
+        btn.innerHTML = '🔒 ซ่อนยอดเงิน';
+    } else {
+        body.classList.add('hide-balances');
+        btn.innerHTML = '👁️ แสดงทั้งหมด';
+    }
+}

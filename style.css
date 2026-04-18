@@ -1043,6 +1043,63 @@ body {
     color: var(--expense);
 }
 
+/* Modal Actions (Toggle & PDF) */
+.modal-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.view-toggle {
+    display: flex;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-view {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 14px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s;
+    font-weight: 500;
+}
+
+.btn-view.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: var(--text-primary);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.btn-export-pdf {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 7px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.1));
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: #fca5a5;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-export-pdf:hover {
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.3), rgba(220, 38, 38, 0.2));
+    border-color: rgba(239, 68, 68, 0.6);
+    color: #fff;
+    transform: translateY(-1px);
+}
+
+
 /* Modal Body */
 .modal-body {
     display: flex;
@@ -1084,13 +1141,13 @@ body {
     border: 1px solid var(--border-color);
 }
 
-#modal-table {
+#modal-table, #bank-modal-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13.5px;
 }
 
-#modal-table thead th {
+#modal-table thead th, #bank-modal-table thead th {
     background: rgba(10, 14, 23, 0.98);
     color: var(--text-muted);
     font-size: 11px;
@@ -1115,7 +1172,7 @@ body {
     background: rgba(56, 189, 248, 0.05);
 }
 
-#modal-table tbody td {
+#modal-table tbody td, #bank-modal-table tbody td {
     padding: 11px 16px;
     color: #cbd5e1;
     white-space: nowrap;
@@ -1124,13 +1181,13 @@ body {
     text-overflow: ellipsis;
 }
 
-#modal-table tbody td.numeric {
+#modal-table tbody td.numeric, #bank-modal-table tbody td.numeric {
     text-align: right;
     font-weight: 600;
     font-family: 'Inter', monospace;
 }
 
-#modal-table tbody td:first-child {
+#modal-table tbody td:first-child, #bank-modal-table tbody td:first-child {
     color: var(--text-muted);
     font-size: 12px;
     width: 40px;
@@ -1172,4 +1229,39 @@ body {
 }
 ::-webkit-scrollbar-thumb:hover {
     background: #475569; 
+}
+
+/* Balance Toggle Button */
+.btn-toggle-balance {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-primary);
+}
+
+.btn-toggle-balance:hover {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.3);
+    transform: translateY(-1px);
+}
+
+/* Hidden Balance State */
+body.hide-balances .bank-balances-container {
+    display: none !important;
+}
+
+body.hide-balances .net-balance-amount {
+    filter: blur(6px);
+    opacity: 0.6;
+    pointer-events: none;
+    user-select: none;
 }

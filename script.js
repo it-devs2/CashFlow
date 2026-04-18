@@ -1,4 +1,5 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbydwExXEbI-ZkhxTPx9FCc_PYbHlYlTYMS1WPsPumHHqXAQ7GNBQNY8QisMu7oCBjkQ/exec";
+const GOOGLE_SHEETS_URL = "https://docs.google.com/spreadsheets/d/1DQ5cBiusMosPtpxOJeO_1lRyf19uvT9Le18__YucbKk/edit?gid=391257604#gid=391257604";
 
 // Utility: Format Number as Currency safely
 function checkValue(val) {
@@ -975,6 +976,12 @@ function closeBankDetailModal(event, force = false) {
 // -------------------------------------------------
 document.addEventListener('DOMContentLoaded', () => {
     initDashboard();
+
+    // Set Google Sheets button link
+    const sheetsBtn = document.getElementById('btn-open-sheets');
+    if (sheetsBtn) {
+        sheetsBtn.href = GOOGLE_SHEETS_URL;
+    }
 
     // Listen to filter inputs (exclude creditor - handled by autocomplete)
     ['filter-bank', 'filter-type', 'filter-day', 'filter-month', 'filter-year'].forEach(id => {

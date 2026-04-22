@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Financial Management System Dashboard</title>
     <!-- Modern Font: Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -12,7 +13,17 @@
     <!-- html2pdf for PDF export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
+
 <body>
+    <!-- Global Loader -->
+    <div id="global-loader" class="global-loader">
+        <div class="loader-content">
+            <div class="loader-spinner"></div>
+            <h2>กำลังดึงข้อมูล...</h2>
+            <p>กรุณารอสักครู่ ระบบกำลังเชื่อมต่อกับ Google Sheets</p>
+        </div>
+    </div>
+
     <div class="dashboard-container">
         <!-- Header -->
         <header class="dashboard-header">
@@ -23,23 +34,28 @@
                     <div class="hfilter-group" style="position:relative;">
                         <label>🔍 เจ้าหนี้</label>
                         <div class="multi-select-box" id="btn-creditor-dropdown">
-                            <span id="creditor-selected-text" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">ทั้งหมด</span>
+                            <span id="creditor-selected-text"
+                                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">ทั้งหมด</span>
                             <span style="font-size: 10px; margin-left: 8px;">▼</span>
                         </div>
                         <div id="creditor-dropdown" class="autocomplete-dropdown ms-dropdown">
                             <div class="ms-search-container">
-                                <input type="text" id="filter-creditor-search" placeholder="🔍 ค้นหาชื่อเจ้าหนี้..." autocomplete="off">
+                                <input type="text" id="filter-creditor-search" placeholder="🔍 ค้นหาชื่อเจ้าหนี้..."
+                                    autocomplete="off">
                             </div>
                             <div class="ms-actions">
                                 <span class="ms-action-btn" id="btn-ms-select-all">☑ เลือกทั้งหมดที่แสดง</span>
-                                <span class="ms-action-btn" id="btn-ms-clear" style="color: var(--expense);">☐ ล้างการเลือก</span>
+                                <span class="ms-action-btn" id="btn-ms-clear" style="color: var(--expense);">☐
+                                    ล้างการเลือก</span>
                             </div>
                             <div class="ms-list" id="creditor-suggestions"></div>
                         </div>
                     </div>
                     <div class="hfilter-group">
                         <label for="filter-bank">🏦 Bank</label>
-                        <select id="filter-bank"><option value="All">ทั้งหมด</option></select>
+                        <select id="filter-bank">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
                     </div>
                     <div class="hfilter-group">
                         <label for="filter-type">📂 Type</label>
@@ -51,20 +67,31 @@
                     </div>
                     <div class="hfilter-group">
                         <label for="filter-day">📅 วัน</label>
-                        <select id="filter-day"><option value="All">ทั้งหมด</option></select>
+                        <select id="filter-day">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
                     </div>
                     <div class="hfilter-group">
                         <label for="filter-month">📅 เดือน</label>
-                        <select id="filter-month"><option value="All">ทั้งหมด</option></select>
+                        <select id="filter-month">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
                     </div>
                     <div class="hfilter-group">
                         <label for="filter-year">📅 ปี</label>
-                        <select id="filter-year"><option value="All">ทั้งหมด</option></select>
+                        <select id="filter-year">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
                     </div>
                     <button id="btn-reset-filters" class="btn-reset">↺ รีเซ็ต</button>
                 </div>
             </div>
             <div class="header-actions">
+                <button id="btn-refresh-data" class="btn-refresh-data" onclick="refreshData()"
+                    title="โหลดข้อมูลใหม่จาก Google Sheets">
+                    <span class="refresh-icon">🔄</span>
+                    <span class="refresh-text">รีเฟรชข้อมูล</span>
+                </button>
                 <div class="header-net-balance">
                     <span class="net-balance-label">Net Balance:</span>
                     <span id="header-net-amount" class="net-balance-amount">0.00</span>
@@ -106,6 +133,57 @@
             <div id="comparison-chart"></div>
         </section>
 
+        <!-- Transaction Analysis by Name Chart -->
+        <section class="charts-section glass" style="margin-top: 25px;">
+            <div class="transaction-chart-header"
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; flex-wrap: wrap; gap: 15px;">
+                <h2 class="section-title" style="margin: 0; font-size: 20px;">Transactions Analysis by Name</h2>
+                <div class="header-filters" style="display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 0;">
+                    <div class="hfilter-group">
+                        <label for="tc-filter-type">💰 ประเภท</label>
+                        <select id="tc-filter-type" onchange="updateTransactionChart()">
+                            <option value="All">ทั้งหมด</option>
+                            <option value="income">Income (รายรับ)</option>
+                            <option value="expense">Expense (รายจ่าย)</option>
+                        </select>
+                    </div>
+                    <div class="hfilter-group" style="position:relative;">
+                        <label>📂 Category</label>
+                        <div class="multi-select-box" id="btn-tc-category-dropdown">
+                            <span id="tc-category-selected-text"
+                                style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 140px;">ทั้งหมด</span>
+                            <span style="font-size: 10px; margin-left: 8px;">▼</span>
+                        </div>
+                        <div id="tc-category-dropdown" class="autocomplete-dropdown ms-dropdown">
+                            <div class="ms-search-container">
+                                <input type="text" id="filter-tc-category-search" placeholder="🔍 ค้นหาหมวดหมู่..."
+                                    autocomplete="off">
+                            </div>
+                            <div class="ms-actions">
+                                <span class="ms-action-btn" id="btn-tc-cat-select-all">☑ เลือกทั้งหมดที่แสดง</span>
+                                <span class="ms-action-btn" id="btn-tc-cat-clear" style="color: var(--expense);">☐
+                                    ล้างการเลือก</span>
+                            </div>
+                            <div class="ms-list" id="tc-category-suggestions"></div>
+                        </div>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="tc-filter-year">📅 ปี</label>
+                        <select id="tc-filter-year" onchange="updateTransactionChart()">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div class="hfilter-group">
+                        <label for="tc-filter-month">📅 เดือน</label>
+                        <select id="tc-filter-month" onchange="updateTransactionChart()">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div id="transaction-chart"></div>
+        </section>
+
         <!-- Bank Balances -->
         <section class="bank-balances-section">
             <div class="bank-section-header">
@@ -125,19 +203,32 @@
                 </div>
                 <div class="bank-date-filters">
                     <div class="hfilter-group">
+                        <label for="bb-filter-bank">🏦 ธนาคาร</label>
+                        <select id="bb-filter-bank" onchange="renderBankBalances()">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
+                    </div>
+                    <div class="hfilter-group">
                         <label for="bb-filter-day">📅 วัน</label>
-                        <select id="bb-filter-day"><option value="All">ทั้งหมด</option></select>
+                        <select id="bb-filter-day" onchange="renderBankBalances()">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
                     </div>
                     <div class="hfilter-group">
                         <label for="bb-filter-month">📅 เดือน</label>
-                        <select id="bb-filter-month"><option value="All">ทั้งหมด</option></select>
+                        <select id="bb-filter-month" onchange="renderBankBalances()">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
                     </div>
                     <div class="hfilter-group">
                         <label for="bb-filter-year">📅 ปี</label>
-                        <select id="bb-filter-year"><option value="All">ทั้งหมด</option></select>
+                        <select id="bb-filter-year" onchange="renderBankBalances()">
+                            <option value="All">ทั้งหมด</option>
+                        </select>
                     </div>
                     <button id="bb-btn-reset" class="btn-reset">↺ รีเซ็ต</button>
-                    <button id="btn-toggle-balance" class="btn-toggle-balance" onclick="toggleBalances()">🔒 ซ่อนยอดเงิน</button>
+                    <button id="btn-toggle-balance" class="btn-toggle-balance" onclick="toggleBalances()">🔒
+                        ซ่อนยอดเงิน</button>
                 </div>
             </div>
             <div class="bank-balances-container" id="bank-balances-container">
@@ -148,31 +239,47 @@
 
 
         <!-- Data Table -->
-        <section class="table-container glass">
-            <table id="transactions-table">
-                <thead>
-                    <tr>
-                        <th>Date</th>
-                        <th>Doc No</th>
-                        <th>Description</th>
-                        <th>Bank</th>
-                        <th>Type</th>
-                        <th>Category</th>
-                        <th>Group</th>
-                        <th>Name</th>
-                        <th>Party</th>
-                        <th>Project</th>
-                        <th>Status</th>
-                        <th class="numeric">Amount (THB)</th>
-                        <th class="numeric">Cash In</th>
-                        <th class="numeric">Cash Out</th>
-                        <th>Transfer To</th>
-                    </tr>
-                </thead>
-                <tbody id="table-body">
-                    <!-- Data will be injected here by script.js -->
-                </tbody>
-            </table>
+        <section style="margin-top: 40px; margin-bottom: 30px;">
+            <div
+                style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; padding:0 10px;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <div
+                        style="width:3px; height:20px; background:linear-gradient(to bottom, #38bdf8, #818cf8); border-radius:2px;">
+                    </div>
+                    <h2 style="font-size:17px; font-weight:700; color:#f1f5f9; margin:0; letter-spacing:-0.02em;">
+                        Transaction Records</h2>
+                </div>
+                <button id="btn-toggle-records" onclick="toggleTransactionRecords()"
+                    style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:10px; color:#cbd5e1; padding:8px 16px; font-size:13px; font-weight:600; cursor:pointer; transition:all 0.2s; display:flex; align-items:center; gap:8px;">
+                    <span id="records-toggle-icon">🔒</span> <span id="records-toggle-text">ซ่อนรายการ</span>
+                </button>
+            </div>
+            <div id="records-table-wrapper" class="table-container glass">
+                <table id="transactions-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Doc No</th>
+                            <th>Description</th>
+                            <th>Bank</th>
+                            <th>Type</th>
+                            <th>Category</th>
+                            <th>Group</th>
+                            <th>Name</th>
+                            <th>Party</th>
+                            <th>Project</th>
+                            <th>Status</th>
+                            <th class="numeric">Amount (THB)</th>
+                            <th class="numeric">Cash In</th>
+                            <th class="numeric">Cash Out</th>
+                            <th>Transfer To</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <!-- Data will be injected here by script.js -->
+                    </tbody>
+                </table>
+            </div>
         </section>
     </div>
 
@@ -186,8 +293,10 @@
                 </div>
                 <div class="modal-actions">
                     <div class="view-toggle">
-                        <button class="btn-view active" id="btn-view-all" onclick="updateModalView('all')">🧾 ดูตาราง</button>
-                        <button class="btn-view" id="btn-view-group" onclick="updateModalView('group')">📊 กลุ่มตามหมวด</button>
+                        <button class="btn-view active" id="btn-view-all" onclick="updateModalView('all')">🧾
+                            ดูตาราง</button>
+                        <button class="btn-view" id="btn-view-group" onclick="updateModalView('group')">📊
+                            กลุ่มตามหมวด</button>
                     </div>
                     <button class="btn-export-pdf" onclick="exportModalPdf('detail')">📄 ออก PDF</button>
                     <button class="modal-close" onclick="closeDetailModal(null, true)">✕</button>
@@ -232,8 +341,10 @@
                 </div>
                 <div class="modal-actions">
                     <div class="view-toggle">
-                        <button class="btn-view active" id="bank-btn-view-all" onclick="updateBankModalView('all')">🧾 ดูตาราง</button>
-                        <button class="btn-view" id="bank-btn-view-group" onclick="updateBankModalView('group')">📊 กลุ่มตามหมวด</button>
+                        <button class="btn-view active" id="bank-btn-view-all" onclick="updateBankModalView('all')">🧾
+                            ดูตาราง</button>
+                        <button class="btn-view" id="bank-btn-view-group" onclick="updateBankModalView('group')">📊
+                            กลุ่มตามหมวด</button>
                     </div>
                     <button class="btn-export-pdf" onclick="exportModalPdf('bank')">📄 ออก PDF</button>
                     <button class="modal-close" onclick="closeBankDetailModal(null, true)">✕</button>
@@ -241,7 +352,8 @@
             </div>
             <div class="modal-body">
                 <div class="modal-search-bar">
-                    <input type="text" id="bank-modal-search" placeholder="🔍 ค้นหาในรายการ..." oninput="filterBankModalTable()">
+                    <input type="text" id="bank-modal-search" placeholder="🔍 ค้นหาในรายการ..."
+                        oninput="filterBankModalTable()">
                 </div>
                 <div class="modal-table-wrap">
                     <table id="bank-modal-table">
@@ -270,10 +382,12 @@
 
     <!-- Floating Google Sheets FAB -->
     <a id="btn-open-sheets" href="#" target="_blank" title="เปิด Google Sheets">
-        <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png" width="26" height="26" alt="Sheets" style="border-radius:4px; flex-shrink:0;">
+        <img src="https://www.gstatic.com/images/branding/product/1x/sheets_2020q4_48dp.png" width="26" height="26"
+            alt="Sheets" style="border-radius:4px; flex-shrink:0;">
         <span class="fab-label">Google Sheets</span>
     </a>
 
     <script src="script.js"></script>
 </body>
+
 </html>

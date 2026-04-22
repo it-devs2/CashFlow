@@ -1,24 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap');
 
 :root {
-    /* Premium Dark Theme Color Palette */
-    --bg-main: #0a0e17;
-    --bg-secondary: #0f1623;
-    --surface: rgba(25, 33, 44, 0.7);
-    --surface-hover: rgba(35, 45, 60, 0.8);
-    
+    /* Premium Navy/Grey Theme */
+    --bg-main: #0b1121;
+    --bg-secondary: #0f172a;
+    --surface: rgba(15, 23, 42, 0.7);
+    --surface-hover: rgba(30, 41, 59, 0.8);
+
     --text-primary: #f8fafc;
     --text-muted: #94a3b8;
-    
+
     --border-color: rgba(255, 255, 255, 0.06);
     --glow-color: rgba(56, 189, 248, 0.15);
-    
+
     --primary: #38bdf8;
     --income: #10b981;
     --income-bg: rgba(16, 185, 129, 0.15);
     --expense: #ef4444;
     --expense-bg: rgba(239, 68, 68, 0.15);
-    
+
     --font-stack: 'Outfit', sans-serif;
 }
 
@@ -32,10 +32,12 @@ body {
     font-family: var(--font-stack);
     background-color: var(--bg-main);
     color: var(--text-primary);
+    color-scheme: dark;
     line-height: 1.6;
-    background-image: 
-        radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.04), transparent 25%),
-        radial-gradient(circle at 85% 30%, rgba(16, 185, 129, 0.04), transparent 25%);
+    background-image:
+        radial-gradient(circle at 10% 20%, rgba(56, 189, 248, 0.05), transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(30, 64, 175, 0.05), transparent 40%),
+        radial-gradient(circle at 50% 50%, rgba(15, 23, 42, 1), #0b1121);
     background-attachment: fixed;
     min-height: 100vh;
 }
@@ -109,9 +111,9 @@ body {
 
 .hfilter-group select,
 .hfilter-group input[type="text"] {
-    background-color: rgba(15, 22, 35, 0.8);
+    background-color: #0d1625 !important;
     border: 1px solid var(--border-color);
-    color: var(--text-primary);
+    color: #f8fafc !important;
     padding: 7px 12px;
     border-radius: 8px;
     font-family: inherit;
@@ -120,6 +122,29 @@ body {
     transition: all 0.2s ease;
     min-width: 110px;
     max-width: 160px;
+    color-scheme: dark;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+}
+
+.hfilter-group select option,
+select option {
+    background-color: #0d1625 !important;
+    color: #f8fafc !important;
+    padding: 8px !important;
+}
+
+.hfilter-group select option:checked,
+.hfilter-group select option:hover,
+select option:checked,
+select option:hover {
+    background-color: #1e3a5f !important;
+    color: #ffffff !important;
 }
 
 .hfilter-group input[type="text"] {
@@ -166,8 +191,8 @@ body {
     background: #0f1a2e;
     border: 1px solid rgba(56, 189, 248, 0.3);
     border-radius: 12px;
-    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(56,189,248,0.08);
-    z-index: 9998;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(56, 189, 248, 0.08);
+    z-index: 99999;
     animation: dropdownOpen 0.15s ease;
 }
 
@@ -176,8 +201,15 @@ body {
 }
 
 @keyframes dropdownOpen {
-    from { opacity: 0; transform: translateY(-6px); }
-    to   { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(-6px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .autocomplete-item {
@@ -255,8 +287,8 @@ body {
 
 .ms-search-container input {
     width: 100%;
-    background: rgba(0,0,0,0.2) !important;
-    border: 1px solid rgba(56,189,248,0.3) !important;
+    background: #0d1625 !important;
+    border: 1px solid rgba(56, 189, 248, 0.3) !important;
     color: #fff !important;
     padding: 8px 12px !important;
     border-radius: 6px !important;
@@ -338,6 +370,107 @@ body {
     gap: 30px;
 }
 
+/* ========== Refresh Data Button ========== */
+.btn-refresh-data {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.15), rgba(129, 140, 248, 0.15));
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: var(--primary);
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    font-family: inherit;
+    white-space: nowrap;
+}
+
+.btn-refresh-data:hover {
+    background: linear-gradient(135deg, rgba(56, 189, 248, 0.25), rgba(129, 140, 248, 0.25));
+    border-color: var(--primary);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+}
+
+.btn-refresh-data:active {
+    transform: translateY(0);
+}
+
+.btn-refresh-data:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-refresh-data .refresh-icon {
+    font-size: 14px;
+    display: inline-block;
+    transition: transform 0.3s ease;
+}
+
+/* Animation: หมุนไอคอนตอนกำลังโหลด */
+.btn-refresh-data.is-loading .refresh-icon {
+    animation: spin-refresh 1s linear infinite;
+}
+
+@keyframes spin-refresh {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ========== Toast Notification ========== */
+.refresh-toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: rgba(15, 23, 42, 0.95);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    color: var(--text-primary);
+    padding: 14px 22px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 600;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 90vw;
+}
+
+.refresh-toast.show {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.refresh-toast-success {
+    border: 1px solid rgba(16, 185, 129, 0.4);
+    border-left: 4px solid var(--income);
+}
+
+.refresh-toast-error {
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    border-left: 4px solid var(--expense);
+}
+
+@media (max-width: 640px) {
+    .refresh-toast {
+        bottom: 80px;
+        right: 15px;
+        left: 15px;
+        text-align: center;
+    }
+}
+
 .header-net-balance {
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border-color);
@@ -388,14 +521,16 @@ body {
 .card::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 4px;
     background: rgba(255, 255, 255, 0.1);
 }
 
 .card:hover {
     transform: translateY(-6px);
-    box-shadow: 0 12px 30px -10px rgba(0,0,0,0.5);
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
     background: var(--surface-hover);
 }
 
@@ -419,18 +554,37 @@ body {
     border-radius: 50%;
 }
 
-.income-card::before { background: linear-gradient(90deg, var(--income), transparent); }
-.income-card h3::before { background-color: var(--income); box-shadow: 0 0 10px var(--income); }
+.income-card::before {
+    background: linear-gradient(90deg, var(--income), transparent);
+}
 
-.expense-card::before { background: linear-gradient(90deg, var(--expense), transparent); }
-.expense-card h3::before { background-color: var(--expense); box-shadow: 0 0 10px var(--expense); }
+.income-card h3::before {
+    background-color: var(--income);
+    box-shadow: 0 0 10px var(--income);
+}
+
+.expense-card::before {
+    background: linear-gradient(90deg, var(--expense), transparent);
+}
+
+.expense-card h3::before {
+    background-color: var(--expense);
+    box-shadow: 0 0 10px var(--expense);
+}
 
 .plan-card {
     border: 1px dashed var(--border-color);
     background: rgba(15, 22, 35, 0.4);
 }
-.plan-card::before { background: linear-gradient(90deg, var(--text-muted), transparent); }
-.plan-card h3::before { background-color: var(--text-muted); box-shadow: none; }
+
+.plan-card::before {
+    background: linear-gradient(90deg, var(--text-muted), transparent);
+}
+
+.plan-card h3::before {
+    background-color: var(--text-muted);
+    box-shadow: none;
+}
 
 .card .amount {
     font-size: 32px;
@@ -444,15 +598,18 @@ body {
     padding: 30px;
     margin-bottom: 40px;
     position: relative;
-    overflow: hidden;
+    overflow: visible;
 }
 
 .charts-section::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
+    top: 0;
+    left: 0;
+    right: 0;
     height: 4px;
     background: linear-gradient(90deg, var(--primary), #818cf8, transparent);
+    border-radius: 16px 16px 0 0;
 }
 
 #comparison-chart {
@@ -628,7 +785,7 @@ body {
     transform: translateY(-4px);
     background: var(--surface-hover);
     border-color: rgba(56, 189, 248, 0.3);
-    box-shadow: 0 8px 24px -6px rgba(0,0,0,0.4);
+    box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.4);
 }
 
 .bank-card-header {
@@ -642,15 +799,16 @@ body {
     height: 32px;
     object-fit: contain;
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.95); /* Keep logo visible on dark backgrounds */
+    background: rgba(255, 255, 255, 0.95);
+    /* Keep logo visible on dark backgrounds */
     padding: 3px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .bank-name {
-    font-size: 14px;
-    color: #e2e8f0;
-    font-weight: 600;
+    font-size: 16px;
+    color: #ffffff;
+    font-weight: 700;
     letter-spacing: 0.2px;
     white-space: nowrap;
     overflow: hidden;
@@ -667,13 +825,14 @@ body {
 
 /* Account number subtitle below bank name */
 .bank-account {
-    font-size: 11px;
-    color: var(--text-muted);
-    font-weight: 400;
-    letter-spacing: 0.3px;
+    font-size: 13.5px;
+    color: #cbd5e1;
+    font-weight: 500;
+    letter-spacing: 0.5px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    margin-top: 1px;
 }
 
 /* ดูรายละเอียด button on bank cards */
@@ -813,7 +972,8 @@ body {
     color: var(--text-muted);
 }
 
-.filter-group select, .filter-group input {
+.filter-group select,
+.filter-group input {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
@@ -825,7 +985,8 @@ body {
     transition: all 0.2s ease;
 }
 
-.filter-group select:focus, .filter-group input:focus {
+.filter-group select:focus,
+.filter-group input:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px var(--glow-color);
 }
@@ -833,7 +994,8 @@ body {
 /* Table Container & Table */
 .table-container {
     overflow-x: auto;
-    padding: 1px; /* Avoid border cut-off */
+    padding: 1px;
+    /* Avoid border cut-off */
 }
 
 #transactions-table {
@@ -919,14 +1081,16 @@ body {
 }
 
 /* Highlight specific columns for better scanning */
-#transactions-table td:nth-child(3) { /* Description */
+#transactions-table td:nth-child(3) {
+    /* Description */
     color: var(--text-primary);
     max-width: 300px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
-#transactions-table td:nth-child(4) { /* Bank */
+#transactions-table td:nth-child(4) {
+    /* Bank */
     font-weight: 500;
 }
 
@@ -976,8 +1140,13 @@ body {
 }
 
 @keyframes fadeInOverlay {
-    from { opacity: 0; }
-    to   { opacity: 1; }
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
 
 .modal-box {
@@ -995,8 +1164,15 @@ body {
 }
 
 @keyframes slideUpModal {
-    from { transform: translateY(40px); opacity: 0; }
-    to   { transform: translateY(0);    opacity: 1; }
+    from {
+        transform: translateY(40px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 /* Modal Header */
@@ -1074,7 +1250,7 @@ body {
 .btn-view.active {
     background: rgba(255, 255, 255, 0.15);
     color: var(--text-primary);
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
 .btn-export-pdf {
@@ -1141,13 +1317,15 @@ body {
     border: 1px solid var(--border-color);
 }
 
-#modal-table, #bank-modal-table {
+#modal-table,
+#bank-modal-table {
     width: 100%;
     border-collapse: collapse;
     font-size: 13.5px;
 }
 
-#modal-table thead th, #bank-modal-table thead th {
+#modal-table thead th,
+#bank-modal-table thead th {
     background: rgba(10, 14, 23, 0.98);
     color: var(--text-muted);
     font-size: 11px;
@@ -1172,7 +1350,8 @@ body {
     background: rgba(56, 189, 248, 0.05);
 }
 
-#modal-table tbody td, #bank-modal-table tbody td {
+#modal-table tbody td,
+#bank-modal-table tbody td {
     padding: 11px 16px;
     color: #cbd5e1;
     white-space: nowrap;
@@ -1181,20 +1360,27 @@ body {
     text-overflow: ellipsis;
 }
 
-#modal-table tbody td.numeric, #bank-modal-table tbody td.numeric {
+#modal-table tbody td.numeric,
+#bank-modal-table tbody td.numeric {
     text-align: right;
     font-weight: 600;
     font-family: 'Inter', monospace;
 }
 
-#modal-table tbody td:first-child, #bank-modal-table tbody td:first-child {
+#modal-table tbody td:first-child,
+#bank-modal-table tbody td:first-child {
     color: var(--text-muted);
     font-size: 12px;
     width: 40px;
 }
 
-.modal-amount-income { color: var(--income); }
-.modal-amount-expense { color: var(--expense); }
+.modal-amount-income {
+    color: var(--income);
+}
+
+.modal-amount-expense {
+    color: var(--expense);
+}
 
 /* Modal Footer */
 .modal-footer {
@@ -1205,7 +1391,7 @@ body {
     flex-shrink: 0;
     font-size: 13px;
     color: var(--text-muted);
-    border-top: 1px solid rgba(255,255,255,0.04);
+    border-top: 1px solid rgba(255, 255, 255, 0.04);
     margin-top: 10px;
 }
 
@@ -1220,15 +1406,18 @@ body {
     width: 8px;
     height: 8px;
 }
+
 ::-webkit-scrollbar-track {
-    background: var(--bg-main); 
+    background: var(--bg-main);
 }
+
 ::-webkit-scrollbar-thumb {
-    background: #334155; 
+    background: #334155;
     border-radius: 10px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-    background: #475569; 
+    background: #475569;
 }
 
 /* Balance Toggle Button */
@@ -1287,12 +1476,12 @@ body.hide-balances .net-balance-amount {
     font-size: 13px;
     font-weight: 600;
     border-radius: 50px;
-    box-shadow: 0 4px 18px rgba(0,0,0,0.5), 0 1px 4px rgba(0,0,0,0.3);
-    border: 1px solid rgba(255,255,255,0.1);
-    transition: width 0.3s cubic-bezier(0.4,0,0.2,1),
-                background 0.2s ease,
-                box-shadow 0.2s ease,
-                transform 0.2s ease;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), 0 1px 4px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        background 0.2s ease,
+        box-shadow 0.2s ease,
+        transform 0.2s ease;
     white-space: nowrap;
     cursor: pointer;
 }
@@ -1300,7 +1489,7 @@ body.hide-balances .net-balance-amount {
 #btn-open-sheets:hover {
     width: 178px;
     background: #1a5c30;
-    box-shadow: 0 6px 24px rgba(34, 168, 98, 0.4), 0 2px 8px rgba(0,0,0,0.4);
+    box-shadow: 0 6px 24px rgba(34, 168, 98, 0.4), 0 2px 8px rgba(0, 0, 0, 0.4);
     transform: translateY(-2px);
 }
 
@@ -1326,4 +1515,331 @@ body.hide-balances .net-balance-amount {
 #btn-open-sheets:hover .fab-label {
     opacity: 1;
     max-width: 120px;
+}
+
+/* =========================================================================
+   Global Loader
+   ========================================================================= */
+.global-loader {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: var(--bg-main);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.4s ease, visibility 0.4s ease;
+}
+
+.global-loader.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.loader-content {
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+}
+
+.loader-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(56, 189, 248, 0.2);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    box-shadow: 0 0 20px var(--glow-color);
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.loader-content h2 {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.loader-content p {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+/* =========================================================================
+   Responsive Design & Mobile Adjustments
+   ========================================================================= */
+
+@media (max-width: 1024px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .header-actions {
+        justify-content: space-between;
+        width: 100%;
+        margin-top: 15px;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    /* Mobile: ซ่อนข้อความของปุ่ม refresh เหลือแค่ icon */
+    .btn-refresh-data .refresh-text {
+        display: none;
+    }
+
+    .btn-refresh-data {
+        padding: 8px 12px;
+    }
+
+    .transaction-chart-header {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    .transaction-chart-header .header-filters {
+        width: 100%;
+    }
+
+    .bank-section-header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .bank-date-filters {
+        margin-left: 0;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .bank-balances-container {
+        justify-content: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .dashboard-container {
+        padding: 15px 15px 100px;
+    }
+
+    /* 1. Fluid Typography using clamp() - Smart resizing */
+    .dashboard-header h1 {
+        font-size: clamp(18px, 4vw, 22px);
+        white-space: normal;
+    }
+
+    .header-left {
+        width: 100%;
+    }
+
+    /* 2. Swipeable Filter Bar (Native App Feel) */
+    .header-filters,
+    .bank-date-filters {
+        width: 100%;
+        flex-wrap: nowrap;
+        /* Force 1 row */
+        overflow-x: auto;
+        overflow-y: visible;
+        padding-bottom: 20px;
+        -webkit-overflow-scrolling: touch;
+        /* Smooth iOS scrolling */
+        scroll-snap-type: x mandatory;
+        scrollbar-width: none;
+        /* Hide scrollbar Firefox */
+        align-items: flex-end;
+        /* Align inputs and button nicely */
+    }
+
+    .header-filters::-webkit-scrollbar,
+    .bank-date-filters::-webkit-scrollbar {
+        display: none;
+        /* Hide scrollbar Chrome/Safari */
+    }
+
+    /* Adds shadow hint to show scrolling is possible */
+    .header-left,
+    .transaction-chart-header,
+    .bank-section-header {
+        position: relative;
+    }
+
+    .header-left::after,
+    .transaction-chart-header::after,
+    .bank-section-header::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 40px;
+        background: linear-gradient(to right, transparent, var(--bg-main));
+        pointer-events: none;
+        z-index: 5;
+    }
+
+    .hfilter-group {
+        flex: 0 0 auto;
+        scroll-snap-align: start;
+        margin-right: 12px;
+    }
+
+    .hfilter-group select,
+    .hfilter-group input[type="text"],
+    .multi-select-box {
+        width: 140px;
+        /* Uniform width on mobile */
+        max-width: none;
+    }
+
+    /* Make ms-dropdown fit mobile screen */
+    .ms-dropdown {
+        width: calc(100vw - 40px) !important;
+        max-width: 320px !important;
+        left: 0 !important;
+    }
+
+    .btn-reset {
+        flex: 0 0 auto;
+        margin-bottom: 0px;
+        /* align with others cleanly */
+    }
+
+    .summary-cards {
+        grid-template-columns: 1fr;
+    }
+
+    /* Fluid scaling on cards */
+    .card .amount {
+        font-size: clamp(24px, 6vw, 32px);
+    }
+
+    /* 3. Touch Animations */
+    .card:active,
+    .bank-card:active {
+        transform: scale(0.98);
+        transition: transform 0.1s;
+    }
+
+    .btn-detail:active,
+    .btn-export-pdf:active,
+    .btn-toggle-balance:active,
+    .btn-view:active {
+        background: rgba(255, 255, 255, 0.15);
+        transform: scale(0.95);
+    }
+
+    .bank-balances-container {
+        flex-direction: column;
+    }
+
+    .bank-card {
+        width: 100%;
+        flex: 1 1 100%;
+    }
+
+    .modal-box {
+        max-width: 95%;
+        margin: 10px;
+        max-height: 90vh;
+    }
+
+    .modal-header {
+        flex-direction: column;
+        gap: 15px;
+        padding: 20px 20px 15px;
+        position: relative;
+    }
+
+    .modal-actions {
+        width: 100%;
+        flex-wrap: wrap;
+        justify-content: space-between;
+    }
+
+    .modal-body {
+        padding: 15px 20px 0;
+    }
+
+    .bh-horizontal-pill {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 15px 20px;
+        width: 100%;
+        gap: 10px;
+    }
+
+    .bh-separator {
+        width: 100%;
+        height: 1px;
+    }
+
+    .bh-pillar,
+    .bh-pillar-main,
+    .bh-pillar-date {
+        min-width: unset;
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+
+    /* More precise fluid constraints for extra small screens */
+    .net-balance-amount {
+        font-size: clamp(16px, 5vw, 18px);
+    }
+
+    .user-profile {
+        font-size: 14px;
+        gap: 10px;
+    }
+
+    .user-profile::before {
+        width: 30px;
+        height: 30px;
+    }
+
+    .btn-view,
+    .btn-export-pdf {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+    }
+
+    .view-toggle {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+
+    .modal-actions {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+
+    .modal-actions button,
+    .modal-actions .view-toggle {
+        width: 100%;
+    }
+
+    .modal-close {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        margin: 0;
+    }
+
+    .modal-title {
+        max-width: 80%;
+    }
 }
